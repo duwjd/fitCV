@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --turbopack --yes)",
+      "Bash(npm install -D prisma)",
+      "Bash(npx shadcn@latest init -d --style new-york --base-color neutral)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add button card input textarea select badge tabs skeleton avatar dropdown-menu sheet separator progress scroll-area dialog alert-dialog tooltip popover form label sidebar breadcrumb navigation-menu command switch checkbox radio-group table collapsible sonner -y)",
+      "Bash(npx prisma init)",
+      "Bash(npm install @auth/prisma-adapter)",
+      "Bash(npx prisma generate)",
+      "Bash(npm run build)",
+      "Bash(npm install)",
+      "Bash(ls /Users/calia/project/fitCV/src/generated/prisma/*.ts)",
+      "Bash(npm install @prisma/pg-worker pg)",
+      "Bash(node -e \"const m = require\\(''@prisma/pg-worker''\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(npm uninstall @prisma/pg-worker)",
+      "Bash(npm install @prisma/pg)",
+      "Bash(npm search @prisma/adapter)",
+      "Bash(npm view @prisma/adapter-pg)",
+      "Bash(npm install @prisma/adapter-pg)",
+      "Bash(node -e \"const m = require\\(''@prisma/adapter-pg''\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(openssl rand -base64 32)"
+    ]
+  }
+}

@@ -1,0 +1,490 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// AUTH & USER MODELS (Auth.js v5)
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts        Account[]
+  sessions        Session[]
+  profile         Profile?
+  resumes         Resume[]
+  coverLetters    CoverLetter[]
+  interviews      MockInterview[]
+  bookmarks       JobBookmark[]
+  applications    Application[]
+  careerGoals     CareerGoal[]
+  recommendations Recommendation[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// PROFILE & SKILLS
+// ============================================
+
+model Profile {
+  id               String          @id @default(cuid())
+  userId           String          @unique
+  nameKo           String?
+  nameEn           String?
+  phone            String?
+  birthDate        DateTime?
+  gender           Gender?
+  address          String?
+  bio              String?         @db.Text
+  desiredRole      String?
+  desiredIndustry  String?
+  experienceYears  Int?
+  educationLevel   EducationLevel?
+  salaryExpectation Int?
+  availableFrom    DateTime?
+  portfolioUrl     String?
+  linkedinUrl      String?
+  githubUrl        String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills           ProfileSkill[]
+  educations       Education[]
+  workExperiences  WorkExperience[]
+  certifications   Certification[]
+
+  @@map("profiles")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum EducationLevel {
+  HIGH_SCHOOL
+  ASSOCIATE
+  BACHELOR
+  MASTER
+  DOCTORATE
+  OTHER
+}
+
+model Skill {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String?
+  createdAt DateTime @default(now())
+
+  profiles  ProfileSkill[]
+  jobSkills JobSkill[]
+
+  @@map("skills")
+}
+
+model ProfileSkill {
+  id        String     @id @default(cuid())
+  profileId String
+  skillId   String
+  level     SkillLevel @default(INTERMEDIATE)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, skillId])
+  @@map("profile_skills")
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model Education {
+  id          String          @id @default(cuid())
+  profileId   String
+  institution String
+  degree      EducationLevel?
+  major       String?
+  startDate   DateTime?
+  endDate     DateTime?
+  gpa         Float?
+  description String?         @db.Text
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("educations")
+}
+
+model WorkExperience {
+  id          String    @id @default(cuid())
+  profileId   String
+  company     String
+  position    String
+  startDate   DateTime
+  endDate     DateTime?
+  isCurrent   Boolean   @default(false)
+  description String?   @db.Text
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("work_experiences")
+}
+
+model Certification {
+  id           String    @id @default(cuid())
+  profileId    String
+  name         String
+  issuer       String
+  issueDate    DateTime?
+  expiryDate   DateTime?
+  credentialId String?
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("certifications")
+}
+
+// ============================================
+// RESUME MODELS
+// ============================================
+
+model Resume {
+  id               String       @id @default(cuid())
+  userId           String
+  title            String
+  status           ResumeStatus @default(DRAFT)
+  originalFileUrl  String?
+  originalFileKey  String?
+  originalFileName String?
+  parsedData       Json?
+  generatedContent Json?
+  templateId       String?
+  language         String       @default("ko")
+  isDefault        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverLetters CoverLetter[]
+  applications Application[]
+
+  @@map("resumes")
+}
+
+enum ResumeStatus {
+  DRAFT
+  PARSING
+  PARSED
+  GENERATING
+  COMPLETED
+  ERROR
+}
+
+// ============================================
+// JOB POSTING MODELS
+// ============================================
+
+model JobPosting {
+  id               String         @id @default(cuid())
+  externalId       String?        @unique
+  source           String?
+  sourceUrl        String?
+  title            String
+  company          String
+  companyLogoUrl   String?
+  location         String?
+  locationType     LocationType   @default(ONSITE)
+  employmentType   EmploymentType @default(FULL_TIME)
+  experienceMin    Int?
+  experienceMax    Int?
+  salaryMin        Int?
+  salaryMax        Int?
+  salaryNegotiable Boolean        @default(false)
+  description      String         @db.Text
+  requirements     String?        @db.Text
+  benefits         String?        @db.Text
+  industry         String?
+  deadline         DateTime?
+  isActive         Boolean        @default(true)
+  viewCount        Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  skills       JobSkill[]
+  bookmarks    JobBookmark[]
+  applications Application[]
+  coverLetters CoverLetter[]
+  interviews   MockInterview[]
+
+  @@index([industry])
+  @@index([location])
+  @@index([isActive, deadline])
+  @@index([createdAt])
+  @@map("job_postings")
+}
+
+enum LocationType {
+  ONSITE
+  REMOTE
+  HYBRID
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+model JobSkill {
+  id           String     @id @default(cuid())
+  jobPostingId String
+  skillId      String
+  isRequired   Boolean    @default(true)
+
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  skill      Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([jobPostingId, skillId])
+  @@map("job_skills")
+}
+
+model JobBookmark {
+  id           String   @id @default(cuid())
+  userId       String
+  jobPostingId String
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobPostingId])
+  @@map("job_bookmarks")
+}
+
+// ============================================
+// APPLICATION & COVER LETTER MODELS
+// ============================================
+
+model Application {
+  id            String            @id @default(cuid())
+  userId        String
+  jobPostingId  String
+  resumeId      String?
+  coverLetterId String?
+  status        ApplicationStatus @default(DRAFT)
+  appliedAt     DateTime?
+  notes         String?           @db.Text
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosting  JobPosting   @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  resume      Resume?      @relation(fields: [resumeId], references: [id])
+  coverLetter CoverLetter? @relation(fields: [coverLetterId], references: [id])
+
+  @@unique([userId, jobPostingId])
+  @@map("applications")
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INTERVIEW_SCHEDULED
+  OFFERED
+  REJECTED
+  WITHDRAWN
+  ACCEPTED
+}
+
+model CoverLetter {
+  id            String            @id @default(cuid())
+  userId        String
+  jobPostingId  String?
+  resumeId      String?
+  title         String
+  content       String            @db.Text
+  generatedData Json?
+  status        CoverLetterStatus @default(DRAFT)
+  language      String            @default("ko")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosting   JobPosting?   @relation(fields: [jobPostingId], references: [id])
+  resume       Resume?       @relation(fields: [resumeId], references: [id])
+  applications Application[]
+
+  @@map("cover_letters")
+}
+
+enum CoverLetterStatus {
+  DRAFT
+  GENERATING
+  COMPLETED
+  ERROR
+}
+
+// ============================================
+// MOCK INTERVIEW MODELS
+// ============================================
+
+model MockInterview {
+  id              String          @id @default(cuid())
+  userId          String
+  jobPostingId    String?
+  role            String?
+  interviewType   InterviewType   @default(BEHAVIORAL)
+  status          InterviewStatus @default(IN_PROGRESS)
+  overallScore    Int?
+  overallFeedback String?         @db.Text
+  duration        Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosting JobPosting?        @relation(fields: [jobPostingId], references: [id])
+  messages   InterviewMessage[]
+
+  @@map("mock_interviews")
+}
+
+enum InterviewType {
+  BEHAVIORAL
+  TECHNICAL
+  SITUATIONAL
+  COMPETENCY
+  MIXED
+}
+
+enum InterviewStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model InterviewMessage {
+  id           String      @id @default(cuid())
+  interviewId  String
+  role         MessageRole
+  content      String      @db.Text
+  feedback     String?     @db.Text
+  score        Int?
+  questionType String?
+  order        Int
+  createdAt    DateTime    @default(now())
+
+  interview MockInterview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId, order])
+  @@map("interview_messages")
+}
+
+enum MessageRole {
+  INTERVIEWER
+  CANDIDATE
+}
+
+// ============================================
+// CAREER MANAGEMENT MODELS
+// ============================================
+
+model CareerGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  description String?   @db.Text
+  targetDate  DateTime?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  priority    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("career_goals")
+}
+
+model Recommendation {
+  id           String             @id @default(cuid())
+  userId       String
+  jobPostingId String?
+  type         RecommendationType
+  reason       String             @db.Text
+  matchScore   Float
+  isViewed     Boolean            @default(false)
+  isDismissed  Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isViewed])
+  @@map("recommendations")
+}
+
+enum RecommendationType {
+  JOB_MATCH
+  SKILL_GAP
+  CAREER_PATH
+}
