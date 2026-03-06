@@ -25,7 +25,21 @@
       "Bash(npm install bcryptjs @types/bcryptjs resend @react-email/components)",
       "Bash(npx tsc --noEmit)",
       "Bash(git add \"next.config.ts\" \"package.json\" \"package-lock.json\" \"prisma/schema.prisma\" \"src/app/\\(auth\\)/login/page.tsx\" \"src/lib/auth.config.ts\" \"src/lib/auth.ts\" \"src/middleware.ts\" \"src/actions/auth.ts\" \"src/app/\\(auth\\)/new-password/page.tsx\" \"src/app/\\(auth\\)/reset-password/page.tsx\" \"src/app/\\(auth\\)/signup/page.tsx\" \"src/app/\\(auth\\)/verify-email/page.tsx\" \"src/components/auth/login-form.tsx\" \"src/components/auth/new-password-form.tsx\" \"src/components/auth/reset-password-form.tsx\" \"src/components/auth/signup-form.tsx\" \"src/lib/email.ts\" \"src/lib/validations/auth.ts\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(ls -la /Users/calia/project/fitCV/src/app/\\\\\\(main\\\\\\)/resumes/)",
+      "Bash(ls -la /Users/calia/project/fitCV/src/app/\\\\\\(main\\\\\\)/)",
+      "Bash(npm install pdf-parse mammoth @supabase/supabase-js)",
+      "Bash(npm install --save-dev @types/pdf-parse)",
+      "Bash(git add \"src/actions/profile.ts\" \"src/actions/settings.ts\" \"src/app/\\(main\\)/profile/edit/career-preferences-form.tsx\" \"src/app/\\(main\\)/profile/edit/education-section.tsx\" \"src/app/\\(main\\)/profile/settings/connected-accounts.tsx\" \"src/lib/validations/profile.ts\")",
+      "Bash(git add package.json package-lock.json src/types/ src/lib/validations/resume.ts src/lib/storage.ts src/lib/ai/ src/actions/resume.ts src/components/resumes/ \"src/app/\\(main\\)/resumes/\")",
+      "Bash(git add src/lib/constants.ts src/components/layout/app-sidebar.tsx src/lib/validations/calendar.ts src/actions/calendar.ts src/components/calendar/ \"src/app/\\(main\\)/calendar/\")",
+      "Bash(git add src/actions/dashboard.ts src/components/dashboard/ \"src/app/\\(main\\)/dashboard/page.tsx\")",
+      "Bash(grep -n \"await prisma\" /Users/calia/project/fitCV/src/actions/*.ts)",
+      "Bash(grep -n \"\\\\.filter\\\\|\\\\.map\\\\|JSON\\\\.parse\" /Users/calia/project/fitCV/src/lib/ai/*.ts)",
+      "Bash(pg_isready)",
+      "Bash(lsof -i :5432)",
+      "Bash(brew services list)",
+      "Bash(postgres --version)"
     ]
   }
 }

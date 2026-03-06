@@ -24,19 +24,29 @@ async function getAuthUserId() {
 
 export async function getResumes() {
   const userId = await getAuthUserId();
-  return prisma.resume.findMany({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-  });
+  try {
+    return await prisma.resume.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+    });
+  } catch (error) {
+    console.error("이력서 목록 조회 실패:", error);
+    return [];
+  }
 }
 
 export async function getResumeById(id: string) {
   const userId = await getAuthUserId();
-  const resume = await prisma.resume.findUnique({ where: { id } });
-  if (!resume || resume.userId !== userId) {
+  try {
+    const resume = await prisma.resume.findUnique({ where: { id } });
+    if (!resume || resume.userId !== userId) {
+      return null;
+    }
+    return resume;
+  } catch (error) {
+    console.error("이력서 조회 실패:", error);
     return null;
   }
-  return resume;
 }
 
 // ── Create ──
@@ -48,17 +58,22 @@ export async function createResume(values: Record<string, unknown>) {
     return { success: false as const, error: validated.error.issues[0].message };
   }
 
-  const resume = await prisma.resume.create({
-    data: {
-      userId,
-      title: validated.data.title,
-      language: validated.data.language,
-      status: "DRAFT",
-    },
-  });
+  try {
+    const resume = await prisma.resume.create({
+      data: {
+        userId,
+        title: validated.data.title,
+        language: validated.data.language,
+        status: "DRAFT",
+      },
+    });
 
-  revalidatePath("/resumes");
-  return { success: true as const, data: resume };
+    revalidatePath("/resumes");
+    return { success: true as const, data: resume };
+  } catch (error) {
+    console.error("이력서 생성 실패:", error);
+    return { success: false as const, error: "이력서 생성에 실패했습니다." };
+  }
 }
 
 // ── Update ──
@@ -73,19 +88,24 @@ export async function updateResume(
     return { success: false as const, error: validated.error.issues[0].message };
   }
 
-  const existing = await prisma.resume.findUnique({ where: { id } });
-  if (!existing || existing.userId !== userId) {
-    return { success: false as const, error: "권한이 없습니다" };
+  try {
+    const existing = await prisma.resume.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      return { success: false as const, error: "권한이 없습니다" };
+    }
+
+    await prisma.resume.update({
+      where: { id },
+      data: validated.data,
+    });
+
+    revalidatePath("/resumes");
+    revalidatePath(`/resumes/${id}`);
+    return { success: true as const };
+  } catch (error) {
+    console.error("이력서 수정 실패:", error);
+    return { success: false as const, error: "이력서 수정에 실패했습니다." };
   }
-
-  await prisma.resume.update({
-    where: { id },
-    data: validated.data,
-  });
-
-  revalidatePath("/resumes");
-  revalidatePath(`/resumes/${id}`);
-  return { success: true as const };
 }
 
 // ── Delete ──
@@ -93,23 +113,28 @@ export async function updateResume(
 export async function deleteResume(id: string) {
   const userId = await getAuthUserId();
 
-  const existing = await prisma.resume.findUnique({ where: { id } });
-  if (!existing || existing.userId !== userId) {
-    return { success: false as const, error: "권한이 없습니다" };
-  }
-
-  if (existing.originalFileKey) {
-    try {
-      await deleteFile(existing.originalFileKey);
-    } catch {
-      // file might already be deleted
+  try {
+    const existing = await prisma.resume.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      return { success: false as const, error: "권한이 없습니다" };
     }
+
+    if (existing.originalFileKey) {
+      try {
+        await deleteFile(existing.originalFileKey);
+      } catch {
+        // file might already be deleted
+      }
+    }
+
+    await prisma.resume.delete({ where: { id } });
+
+    revalidatePath("/resumes");
+    return { success: true as const };
+  } catch (error) {
+    console.error("이력서 삭제 실패:", error);
+    return { success: false as const, error: "이력서 삭제에 실패했습니다." };
   }
-
-  await prisma.resume.delete({ where: { id } });
-
-  revalidatePath("/resumes");
-  return { success: true as const };
 }
 
 // ── Set Default ──
@@ -117,24 +142,29 @@ export async function deleteResume(id: string) {
 export async function setDefaultResume(id: string) {
   const userId = await getAuthUserId();
 
-  const existing = await prisma.resume.findUnique({ where: { id } });
-  if (!existing || existing.userId !== userId) {
-    return { success: false as const, error: "권한이 없습니다" };
+  try {
+    const existing = await prisma.resume.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      return { success: false as const, error: "권한이 없습니다" };
+    }
+
+    await prisma.$transaction([
+      prisma.resume.updateMany({
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
+      }),
+      prisma.resume.update({
+        where: { id },
+        data: { isDefault: true },
+      }),
+    ]);
+
+    revalidatePath("/resumes");
+    return { success: true as const };
+  } catch (error) {
+    console.error("기본 이력서 설정 실패:", error);
+    return { success: false as const, error: "기본 이력서 설정에 실패했습니다." };
   }
-
-  await prisma.$transaction([
-    prisma.resume.updateMany({
-      where: { userId, isDefault: true },
-      data: { isDefault: false },
-    }),
-    prisma.resume.update({
-      where: { id },
-      data: { isDefault: true },
-    }),
-  ]);
-
-  revalidatePath("/resumes");
-  return { success: true as const };
 }
 
 // ── File Upload & Parse ──
@@ -156,15 +186,21 @@ export async function uploadAndParseResume(formData: FormData) {
     return { success: false as const, error: "파일 크기는 10MB 이하여야 합니다" };
   }
 
-  // Create resume record
-  const resume = await prisma.resume.create({
-    data: {
-      userId,
-      title,
-      status: "PARSING",
-      originalFileName: file.name,
-    },
-  });
+  let resume;
+  try {
+    // Create resume record
+    resume = await prisma.resume.create({
+      data: {
+        userId,
+        title,
+        status: "PARSING",
+        originalFileName: file.name,
+      },
+    });
+  } catch (error) {
+    console.error("이력서 레코드 생성 실패:", error);
+    return { success: false as const, error: "이력서 생성에 실패했습니다." };
+  }
 
   try {
     // Upload to storage
@@ -242,36 +278,41 @@ export async function updateResumeContent(
 ) {
   const userId = await getAuthUserId();
 
-  const existing = await prisma.resume.findUnique({ where: { id } });
-  if (!existing || existing.userId !== userId) {
-    return { success: false as const, error: "권한이 없습니다" };
+  try {
+    const existing = await prisma.resume.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      return { success: false as const, error: "권한이 없습니다" };
+    }
+
+    // Get latest version number
+    const latestVersion = await prisma.resumeVersion.findFirst({
+      where: { resumeId: id },
+      orderBy: { version: "desc" },
+    });
+
+    const newVersion = (latestVersion?.version ?? 0) + 1;
+
+    await prisma.$transaction([
+      prisma.resume.update({
+        where: { id },
+        data: { parsedData: content as never },
+      }),
+      prisma.resumeVersion.create({
+        data: {
+          resumeId: id,
+          version: newVersion,
+          content: content as never,
+          changeNote: changeNote || `버전 ${newVersion}`,
+        },
+      }),
+    ]);
+
+    revalidatePath(`/resumes/${id}`);
+    return { success: true as const };
+  } catch (error) {
+    console.error("이력서 내용 수정 실패:", error);
+    return { success: false as const, error: "이력서 내용 수정에 실패했습니다." };
   }
-
-  // Get latest version number
-  const latestVersion = await prisma.resumeVersion.findFirst({
-    where: { resumeId: id },
-    orderBy: { version: "desc" },
-  });
-
-  const newVersion = (latestVersion?.version ?? 0) + 1;
-
-  await prisma.$transaction([
-    prisma.resume.update({
-      where: { id },
-      data: { parsedData: content as never },
-    }),
-    prisma.resumeVersion.create({
-      data: {
-        resumeId: id,
-        version: newVersion,
-        content: content as never,
-        changeNote: changeNote || `버전 ${newVersion}`,
-      },
-    }),
-  ]);
-
-  revalidatePath(`/resumes/${id}`);
-  return { success: true as const };
 }
 
 // ── AI Generate ──
@@ -282,21 +323,21 @@ export async function generateResume(
 ) {
   const userId = await getAuthUserId();
 
-  const existing = await prisma.resume.findUnique({ where: { id } });
-  if (!existing || existing.userId !== userId) {
-    return { success: false as const, error: "권한이 없습니다" };
-  }
-
-  if (!existing.parsedData) {
-    return { success: false as const, error: "파싱된 데이터가 없습니다" };
-  }
-
-  await prisma.resume.update({
-    where: { id },
-    data: { status: "GENERATING" },
-  });
-
   try {
+    const existing = await prisma.resume.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      return { success: false as const, error: "권한이 없습니다" };
+    }
+
+    if (!existing.parsedData) {
+      return { success: false as const, error: "파싱된 데이터가 없습니다" };
+    }
+
+    await prisma.resume.update({
+      where: { id },
+      data: { status: "GENERATING" },
+    });
+
     const generated = await generateOptimizedResume(
       existing.parsedData as unknown as ResumeContent,
       jobDescription
@@ -313,10 +354,14 @@ export async function generateResume(
     revalidatePath(`/resumes/${id}`);
     return { success: true as const };
   } catch (error) {
-    await prisma.resume.update({
-      where: { id },
-      data: { status: "ERROR" },
-    });
+    try {
+      await prisma.resume.update({
+        where: { id },
+        data: { status: "ERROR" },
+      });
+    } catch {
+      // ignore secondary error
+    }
     return {
       success: false as const,
       error: error instanceof Error ? error.message : "생성에 실패했습니다",
@@ -329,52 +374,62 @@ export async function generateResume(
 export async function getResumeVersions(resumeId: string) {
   const userId = await getAuthUserId();
 
-  const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
-  if (!resume || resume.userId !== userId) return [];
+  try {
+    const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
+    if (!resume || resume.userId !== userId) return [];
 
-  return prisma.resumeVersion.findMany({
-    where: { resumeId },
-    orderBy: { version: "desc" },
-  });
+    return await prisma.resumeVersion.findMany({
+      where: { resumeId },
+      orderBy: { version: "desc" },
+    });
+  } catch (error) {
+    console.error("이력서 버전 조회 실패:", error);
+    return [];
+  }
 }
 
 export async function restoreVersion(resumeId: string, versionId: string) {
   const userId = await getAuthUserId();
 
-  const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
-  if (!resume || resume.userId !== userId) {
-    return { success: false as const, error: "권한이 없습니다" };
+  try {
+    const resume = await prisma.resume.findUnique({ where: { id: resumeId } });
+    if (!resume || resume.userId !== userId) {
+      return { success: false as const, error: "권한이 없습니다" };
+    }
+
+    const version = await prisma.resumeVersion.findUnique({
+      where: { id: versionId },
+    });
+    if (!version || version.resumeId !== resumeId) {
+      return { success: false as const, error: "버전을 찾을 수 없습니다" };
+    }
+
+    const latestVersion = await prisma.resumeVersion.findFirst({
+      where: { resumeId },
+      orderBy: { version: "desc" },
+    });
+
+    const newVersion = (latestVersion?.version ?? 0) + 1;
+
+    await prisma.$transaction([
+      prisma.resume.update({
+        where: { id: resumeId },
+        data: { parsedData: version.content as never },
+      }),
+      prisma.resumeVersion.create({
+        data: {
+          resumeId,
+          version: newVersion,
+          content: version.content as never,
+          changeNote: `버전 ${version.version}에서 복원`,
+        },
+      }),
+    ]);
+
+    revalidatePath(`/resumes/${resumeId}`);
+    return { success: true as const };
+  } catch (error) {
+    console.error("버전 복원 실패:", error);
+    return { success: false as const, error: "버전 복원에 실패했습니다." };
   }
-
-  const version = await prisma.resumeVersion.findUnique({
-    where: { id: versionId },
-  });
-  if (!version || version.resumeId !== resumeId) {
-    return { success: false as const, error: "버전을 찾을 수 없습니다" };
-  }
-
-  const latestVersion = await prisma.resumeVersion.findFirst({
-    where: { resumeId },
-    orderBy: { version: "desc" },
-  });
-
-  const newVersion = (latestVersion?.version ?? 0) + 1;
-
-  await prisma.$transaction([
-    prisma.resume.update({
-      where: { id: resumeId },
-      data: { parsedData: version.content as never },
-    }),
-    prisma.resumeVersion.create({
-      data: {
-        resumeId,
-        version: newVersion,
-        content: version.content as never,
-        changeNote: `버전 ${version.version}에서 복원`,
-      },
-    }),
-  ]);
-
-  revalidatePath(`/resumes/${resumeId}`);
-  return { success: true as const };
 }

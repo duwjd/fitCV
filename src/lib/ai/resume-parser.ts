@@ -84,5 +84,9 @@ export async function parseResumeText(
     throw new Error("AI 응답에서 텍스트를 추출할 수 없습니다");
   }
 
-  return JSON.parse(content.text) as ResumeContent;
+  try {
+    return JSON.parse(content.text) as ResumeContent;
+  } catch {
+    throw new Error("AI 응답을 JSON으로 파싱할 수 없습니다. 다시 시도해주세요.");
+  }
 }

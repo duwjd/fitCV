@@ -1,14 +1,23 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "RESEND_API_KEY 환경변수가 설정되지 않았습니다. .env 파일을 확인해주세요."
+    );
+  }
+  return new Resend(apiKey);
+}
+
 export async function sendVerificationEmail(email: string, token: string) {
+  const resend = getResendClient();
   const confirmLink = `${APP_URL}/verify-email?token=${token}`;
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: "[fit.CV] 이메일 인증을 완료해주세요",
@@ -28,12 +37,17 @@ export async function sendVerificationEmail(email: string, token: string) {
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(`이메일 전송 실패: ${error.message}`);
+  }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
+  const resend = getResendClient();
   const resetLink = `${APP_URL}/new-password?token=${token}`;
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: "[fit.CV] 비밀번호 재설정",
@@ -53,4 +67,8 @@ export async function sendPasswordResetEmail(email: string, token: string) {
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(`이메일 전송 실패: ${error.message}`);
+  }
 }
