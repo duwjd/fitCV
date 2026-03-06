@@ -4,6 +4,7 @@ export const SITE_DESCRIPTION =
 
 export const NAV_ITEMS = [
   { label: "대시보드", href: "/dashboard", icon: "LayoutDashboard" },
+  { label: "캘린더", href: "/calendar", icon: "Calendar" },
   { label: "채용공고", href: "/jobs", icon: "Briefcase" },
   { label: "추천", href: "/recommendations", icon: "Sparkles" },
 ] as const;

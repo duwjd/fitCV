@@ -10,7 +10,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 interface Props {
-  accounts: { provider: string; createdAt: Date }[];
+  accounts: { provider: string }[];
 }
 
 export function ConnectedAccounts({ accounts }: Props) {

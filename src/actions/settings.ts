@@ -88,7 +88,7 @@ export async function getConnectedAccounts() {
 
   const accounts = await prisma.account.findMany({
     where: { userId },
-    select: { provider: true, createdAt: true },
+    select: { provider: true },
   });
 
   return accounts;

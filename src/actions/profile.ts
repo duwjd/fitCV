@@ -11,7 +11,7 @@ import {
   educationSchema,
   certificationSchema,
 } from "@/lib/validations/profile";
-import type { SkillLevel } from "@/generated/prisma";
+import type { SkillLevel } from "@/generated/prisma/client";
 
 async function getAuthUserId() {
   const session = await auth();

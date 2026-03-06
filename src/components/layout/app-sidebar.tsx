@@ -11,6 +11,7 @@ import {
   MessageSquare,
   User,
   Settings,
+  Calendar,
 } from "lucide-react";
 import {
   Sidebar,
@@ -28,6 +29,7 @@ import { UserMenu } from "@/components/auth/user-menu";
 
 const mainNav = [
   { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
+  { label: "캘린더", href: "/calendar", icon: Calendar },
   { label: "채용공고", href: "/jobs", icon: Briefcase },
   { label: "추천", href: "/recommendations", icon: Sparkles },
 ];

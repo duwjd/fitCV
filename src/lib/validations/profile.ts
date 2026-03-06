@@ -17,11 +17,11 @@ export const basicInfoSchema = z.object({
 export const careerPreferencesSchema = z.object({
   desiredRole: z.string().max(100).optional().or(z.literal("")),
   desiredIndustry: z.string().max(100).optional().or(z.literal("")),
-  experienceYears: z.coerce.number().min(0).max(50).optional(),
+  experienceYears: z.number().min(0).max(50).optional(),
   educationLevel: z
     .enum(["HIGH_SCHOOL", "ASSOCIATE", "BACHELOR", "MASTER", "DOCTORATE", "OTHER"])
     .optional(),
-  salaryExpectation: z.coerce.number().min(0).optional(),
+  salaryExpectation: z.number().min(0).optional(),
   availableFrom: z.string().optional().or(z.literal("")),
 });
 
@@ -37,7 +37,7 @@ export const workExperienceSchema = z.object({
   position: z.string().min(1, "직책을 입력해주세요"),
   startDate: z.string().min(1, "시작일을 입력해주세요"),
   endDate: z.string().optional().or(z.literal("")),
-  isCurrent: z.boolean().default(false),
+  isCurrent: z.boolean(),
   description: z.string().max(2000).optional().or(z.literal("")),
 });
 
@@ -50,7 +50,7 @@ export const educationSchema = z.object({
   major: z.string().max(100).optional().or(z.literal("")),
   startDate: z.string().optional().or(z.literal("")),
   endDate: z.string().optional().or(z.literal("")),
-  gpa: z.coerce.number().min(0).max(5).optional(),
+  gpa: z.number().min(0).max(5).optional(),
   description: z.string().max(1000).optional().or(z.literal("")),
 });
 
